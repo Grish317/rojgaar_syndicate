@@ -29,95 +29,97 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-  title: Text("Rojgaar - ${widget.role} Dashboard"),
-  actions: [
-    IconButton(
-      icon: Icon(Icons.search),
-      onPressed: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => TaskSearchPage(
-              onSearch: (query) {
-                setState(() {
-                  searchQuery = query;
-                });
-              },
-            ),
-          ),
-        );
-      },
-    ),
-    IconButton(
-      icon: Icon(Icons.mic),
-      onPressed: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => VoiceSearchPage(
-              onSearch: (query) {
-                setState(() {
-                  searchQuery = query;
-                });
-              },
-            ),
-          ),
-        );
-      },
-    ),
-    IconButton(
-      icon: Stack(
-        children: [
-          Icon(Icons.notifications),
-          StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection('notifications')
-                .where('receiverId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
-                .where('isRead', isEqualTo: false)
-                .snapshots(),
-            builder: (context, snapshot) {
-              if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
-                return Positioned(
-                  right: 0,
-                  child: CircleAvatar(
-                    radius: 6,
-                    backgroundColor: Colors.red,
+        title: Text("NepHustlers - ${widget.role} Dashboard"),
+        actions: [
+          // Search Icon
+          IconButton(
+            icon: Icon(Icons.search),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => TaskSearchPage(
+                    onSearch: (query) {
+                      setState(() {
+                        searchQuery = query;
+                      });
+                    },
                   ),
-                );
-              }
-              return SizedBox.shrink();
+                ),
+              );
+            },
+          ),
+          // Voice Search Icon
+          IconButton(
+            icon: Icon(Icons.mic),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => VoiceSearchPage(
+                    onSearch: (query) {
+                      setState(() {
+                        searchQuery = query;
+                      });
+                    },
+                  ),
+                ),
+              );
+            },
+          ),
+          // Notifications Icon with Badge
+          IconButton(
+            icon: Stack(
+              children: [
+                Icon(Icons.notifications),
+                StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('notifications')
+                      .where('receiverId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
+                      .where('isRead', isEqualTo: false)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
+                      return Positioned(
+                        right: 0,
+                        child: CircleAvatar(
+                          radius: 6,
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                    return SizedBox.shrink();
+                  },
+                ),
+              ],
+            ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => NotificationsPage()),
+              );
+            },
+          ),
+          // Wallet Icon
+          IconButton(
+            icon: Icon(Icons.account_balance_wallet),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => WalletPage(role: widget.role)),
+              );
+            },
+          ),
+          // Profile Icon
+          IconButton(
+            icon: Icon(Icons.account_circle),
+            onPressed: () {
+              _navigateToProfile();
             },
           ),
         ],
       ),
-      onPressed: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => NotificationsPage()),
-        );
-      },
-    ),
-    // **Wallet Button**
-    IconButton(
-      icon: Icon(Icons.account_balance_wallet),
-      onPressed: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => WalletPage(role: widget.role)),
-        );
-      },
-    ),
-    // **Profile Button**
-    IconButton(
-      icon: Icon(Icons.account_circle),
-      onPressed: () {
-        _navigateToProfile();
-      },
-    ),
-  ],
-),
-
-
+      
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('tasks')
@@ -136,20 +138,40 @@ class _HomePageState extends State<HomePage> {
           return ListView.builder(
             itemCount: taskDocs.length,
             itemBuilder: (ctx, index) {
-              return TaskTile(
-                title: taskDocs[index]['title'],
-                location: taskDocs[index]['location'],
-                price: taskDocs[index]['budget'],
-                taskId: taskDocs[index].id,
-                role: widget.role,
-                postedBy: taskDocs[index]['postedBy'],
-                createdAt: taskDocs[index]['createdAt'],
+              return Card(
+                margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: ListTile(
+                  leading: Icon(Icons.task),
+                  title: Text(taskDocs[index]['title']),
+                  subtitle: Text('Location: ${taskDocs[index]['location']}'),
+                  trailing: Text('Rs. ${taskDocs[index]['budget']}'),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => TaskTile(
+                          title: taskDocs[index]['title'],
+                          location: taskDocs[index]['location'],
+                          price: taskDocs[index]['budget'],
+                          taskId: taskDocs[index].id,
+                          role: widget.role,
+                          postedBy: taskDocs[index]['postedBy'],
+                          createdAt: taskDocs[index]['createdAt'],
+                        ),
+                      ),
+                    );
+                  },
+                ),
               );
             },
           );
         },
       ),
-
+      
       floatingActionButton: widget.role == "Task Giver"
           ? FloatingActionButton(
               onPressed: () {
@@ -166,23 +188,22 @@ class _HomePageState extends State<HomePage> {
 
   // Function to navigate to the correct profile page based on user role
   void _navigateToProfile() {
-  String normalizedRole = widget.role.toLowerCase().replaceAll(' ', '_');
+    String normalizedRole = widget.role.toLowerCase().replaceAll(' ', '_');
 
-  if (normalizedRole == 'tasker') {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => TaskerProfilePage(userId: userId)),
-    );
-  } else if (normalizedRole == 'task_giver') {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => TaskGiverProfilePage(userId: userId)),
-    );
-  } else {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("User role not found!")),
-    );
+    if (normalizedRole == 'tasker') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => TaskerProfilePage(userId: userId)),
+      );
+    } else if (normalizedRole == 'task_giver') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => TaskGiverProfilePage(userId: userId)),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("User role not found!")),
+      );
+    }
   }
-}
-
 }

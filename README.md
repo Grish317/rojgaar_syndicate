@@ -1,6 +1,6 @@
 # rojgaar_syndicate
 
-A new Flutter project.
+A Flutter project for mobile application: NepHustlers
 
 ## Getting Started
 

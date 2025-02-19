@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:getwidget/getwidget.dart';
 
 class WalletPage extends StatefulWidget {
-  final String role; // Add this
+  final String role; // Accept role as a parameter
 
-  const WalletPage({super.key, required this.role}); // Modify constructor
+  const WalletPage({super.key, required this.role}); // Constructor
 
   @override
   _WalletPageState createState() => _WalletPageState();
@@ -12,10 +13,9 @@ class WalletPage extends StatefulWidget {
 
 class _WalletPageState extends State<WalletPage> {
   double _taskerBalance = 150.0; // Dummy balance for Tasker
-  double _taskGiverBalance = 500.0; // Dummy balance for Task Giver
 
   // Function to launch eSewa Payment Page
-  Future<void> _openEsewaPayment(String userType) async {
+  Future<void> _openEsewaPayment() async {
     const esewaUrl = "https://esewa.com.np/#/home"; // eSewa URL for payment
     if (await canLaunch(esewaUrl)) {
       await launch(esewaUrl);
@@ -24,55 +24,61 @@ class _WalletPageState extends State<WalletPage> {
     }
   }
 
-  // Simulate Adding Funds After eSewa Payment
-  void _addFunds(String userType, double amount) {
+  // Simulate Adding Funds After eSewa Payment (Only for Tasker)
+  void _addFunds(double amount) {
     setState(() {
-      if (userType == "Tasker") {
-        _taskerBalance += amount;
-      } else {
-        _taskGiverBalance += amount;
-      }
+      _taskerBalance += amount;
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Funds added! New balance: Rs. ${userType == "Tasker" ? _taskerBalance : _taskGiverBalance}')),
+      SnackBar(content: Text('Funds added! New balance: Rs. $_taskerBalance')),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Wallet - ${widget.role}')), // Display role in title
+      appBar: AppBar(title: Text('Wallet - ${widget.role}')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Tasker Wallet Balance: Rs. $_taskerBalance', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: () => _openEsewaPayment("Tasker"),
-              child: Text('Add Funds via eSewa (Tasker)'),
-            ),
-            ElevatedButton(
-              onPressed: () => _addFunds("Tasker", 100), // Simulate adding Rs. 100
-              child: Text('Simulate Rs. 100 Add (Tasker)'),
-            ),
-
-            SizedBox(height: 40),
-
-            Text('Task Giver Wallet Balance: Rs. $_taskGiverBalance', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: () => _openEsewaPayment("Task Giver"),
-              child: Text('Pay via eSewa (Task Giver)'),
-            ),
-            ElevatedButton(
-              onPressed: () => _addFunds("Task Giver", 200), // Simulate adding Rs. 200
-              child: Text('Simulate Rs. 200 Add (Task Giver)'),
-            ),
-          ],
-        ),
+        child: widget.role == "Tasker"
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Using GFCard for the Tasker Wallet
+                  GFCard(
+                    boxFit: BoxFit.cover,
+                    image: Image.asset("assets/wallet.png", fit: BoxFit.cover),
+                    title: GFListTile(
+                      avatar: Icon(Icons.account_balance_wallet, color: Colors.blue),
+                      title: Text("Tasker Wallet"),
+                      subTitle: Text("Balance: Rs. $_taskerBalance"),
+                    ),
+                    buttonBar: GFButtonBar(
+                      children: <Widget>[
+                        GFButton(
+                          onPressed: _openEsewaPayment,
+                          text: "Add Funds",
+                          icon: Icon(Icons.payment, color: Colors.white),
+                          color: GFColors.PRIMARY,
+                        ),
+                        GFButton(
+                          onPressed: () => _addFunds(100), // Simulate adding Rs. 100
+                          text: "Simulate Rs. 100 Add",
+                          icon: Icon(Icons.add, color: Colors.white),
+                          color: GFColors.SUCCESS,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              )
+            : Center(
+                child: ElevatedButton(
+                  onPressed: _openEsewaPayment,
+                  child: Text('Pay via eSewa'),
+                ),
+              ),
       ),
     );
   }

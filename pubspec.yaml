@@ -18,3 +18,15 @@ dependencies:
   firebase_storage: ^12.4.1
   image_picker: 1.1.2
   url_launcher: 6.3.1
+  flutter_neumorphic: 3.2.0
+  getwidget: 5.0.0
+  flutter_launcher_icons: 0.14.3
+
+flutter:
+  uses-material-design: true
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon.png"
+
