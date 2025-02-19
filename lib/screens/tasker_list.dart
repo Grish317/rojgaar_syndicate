@@ -29,17 +29,11 @@ class TaskListPage extends StatelessWidget {
                     onPressed: () async {
                       final user = FirebaseAuth.instance.currentUser;
                       if (user != null) {
-                        // Save task request in Firestore
-                        await FirebaseFirestore.instance.collection('task_requests').add({
-                          'taskId': taskDocs[index].id,
-                          'taskerId': user.uid,
-                          'status': 'pending', // You can set a status for the request
-                        });
+                        await requestTask(taskDocs[index].id, user.uid);
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text("Applied for task")),
                         );
                       } else {
-                        // If the user is not logged in, show a message to sign in
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text("Please log in to apply for tasks")),
                         );
@@ -54,5 +48,27 @@ class TaskListPage extends StatelessWidget {
         },
       ),
     );
+  }
+
+  /// Function to request a task
+  Future<void> requestTask(String taskId, String taskerId) async {
+    FirebaseFirestore firestore = FirebaseFirestore.instance;
+
+    await firestore.collection('tasks').doc(taskId).update({
+      "requests": FieldValue.arrayUnion([taskerId]) // Adds taskerId to the requests array
+    });
+
+    print("Task request sent!");
+
+    Future<void> removeTaskRequest(String taskId, String taskerId) async {
+  FirebaseFirestore firestore = FirebaseFirestore.instance;
+
+  await firestore.collection('tasks').doc(taskId).update({
+    "requests": FieldValue.arrayRemove([taskerId]) // Removes taskerId from requests array
+  });
+
+  print("Task request removed!");
+}
+
   }
 }

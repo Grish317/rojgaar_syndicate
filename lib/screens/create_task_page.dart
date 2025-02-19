@@ -24,7 +24,8 @@ class _CreateTaskPageState extends State<CreateTaskPage> {
         _locationController.text.isNotEmpty) {
       final user = _auth.currentUser;
       if (user != null) {
-        FirebaseFirestore.instance.collection('tasks').add({
+        // Add the task to the Firestore database
+        final taskRef = await FirebaseFirestore.instance.collection('tasks').add({
           'title': _titleController.text,
           'description': _descriptionController.text,
           'budget': _budgetController.text,
@@ -33,11 +34,26 @@ class _CreateTaskPageState extends State<CreateTaskPage> {
           'postedBy': user.uid,
           'status': 'open',
           'createdAt': Timestamp.now(),
-        }).then((_) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Task posted successfully!'),
-          ));
         });
+
+        // Send notification to all Taskers
+        final taskersSnapshot = await FirebaseFirestore.instance.collection('users')
+            .where('role', isEqualTo: 'Tasker')
+            .get();
+
+        for (var tasker in taskersSnapshot.docs) {
+          FirebaseFirestore.instance.collection('notifications').add({
+            'receiverId': tasker.id,
+            'message': "New task posted: ${_titleController.text}",
+            'timestamp': Timestamp.now(),
+            'isRead': false,
+          });
+        }
+
+        // Show confirmation message
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Task posted successfully!'),
+        ));
       }
     }
   }

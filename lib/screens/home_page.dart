@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'create_task_page.dart';
 import 'task_search.dart';
 import 'edit_task.dart';
+import 'notifications_page.dart';  // Update with the correct path if necessary
 import 'voice_task_search.dart'; // Import the voice search page
 import 'package:intl/intl.dart'; // To format the date
 
@@ -22,47 +23,80 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("Rojgaar - ${widget.role} Dashboard"),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.search),
-            onPressed: () {
-              // Navigate to the TaskSearchPage for normal search
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => TaskSearchPage(
-                    onSearch: (query) {
-                      setState(() {
-                        searchQuery = query;
-                      });
-                    },
-                  ),
-                ),
-              );
-            },
+
+appBar: AppBar(
+  title: Text("Rojgaar - ${widget.role} Dashboard"),
+  actions: [
+    IconButton(
+      icon: Icon(Icons.search),
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => TaskSearchPage(
+              onSearch: (query) {
+                setState(() {
+                  searchQuery = query;
+                });
+              },
+            ),
           ),
-          IconButton(
-            icon: Icon(Icons.mic),
-            onPressed: () {
-              // Navigate to the VoiceSearchPage
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => VoiceSearchPage(
-                    onSearch: (query) {
-                      setState(() {
-                        searchQuery = query;
-                      });
-                    },
+        );
+      },
+    ),
+    IconButton(
+      icon: Icon(Icons.mic),
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => VoiceSearchPage(
+              onSearch: (query) {
+                setState(() {
+                  searchQuery = query;
+                });
+              },
+            ),
+          ),
+        );
+      },
+    ),
+    // Add the notification icon
+    IconButton(
+      icon: Stack(
+        children: [
+          Icon(Icons.notifications),
+          StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('notifications')
+                .where('receiverId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
+                .where('isRead', isEqualTo: false)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
+                return Positioned(
+                  right: 0,
+                  child: CircleAvatar(
+                    radius: 6,
+                    backgroundColor: Colors.red,
                   ),
-                ),
-              );
+                );
+              }
+              return SizedBox.shrink();
             },
           ),
         ],
       ),
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => NotificationsPage()),
+        );
+      },
+    ),
+  ],
+),
+
       body: StreamBuilder<QuerySnapshot>(
   stream: FirebaseFirestore.instance
       .collection('tasks')
@@ -118,7 +152,7 @@ class TaskTile extends StatelessWidget {
   final String price; // Change 'price' to 'budget' here
   final String taskId;
   final String role;
-  final String postedBy;
+  final String postedBy; // Corrected field name here
   final Timestamp createdAt; // Added createdAt parameter
 
   const TaskTile({
@@ -128,7 +162,7 @@ class TaskTile extends StatelessWidget {
     required this.price, // This should refer to 'budget'
     required this.taskId,
     required this.role,
-    required this.postedBy,
+    required this.postedBy, // Pass postedBy to the constructor
     required this.createdAt, // Pass createdAt to the constructor
   });
 
@@ -142,7 +176,8 @@ class TaskTile extends StatelessWidget {
         trailing: role == 'Tasker'
             ? ElevatedButton(
                 onPressed: () {
-                  _applyForTask(context, taskId, title);
+                  // Pass 'postedBy' to the _applyForTask function
+                  _applyForTask(context, taskId, title, postedBy);
                 },
                 child: const Text("Apply"),
               )
@@ -158,7 +193,8 @@ class TaskTile extends StatelessWidget {
 }
 
 
-void _applyForTask(BuildContext context, String taskId, String title) async {
+
+void _applyForTask(BuildContext context, String taskId, String title, String postedBy) async {
   final user = FirebaseAuth.instance.currentUser;
   if (user != null) {
     // Add task request to Firestore (task_requests collection)
@@ -167,6 +203,16 @@ void _applyForTask(BuildContext context, String taskId, String title) async {
       'taskerId': user.uid,
       'status': 'pending', // Request status
       'createdAt': Timestamp.now(),
+    });
+
+    // Notify the Task Giver with a notification that includes a default 'pending' status
+    await FirebaseFirestore.instance.collection('notifications').add({
+      'receiverId': postedBy,       // Notify the task giver (who posted the task)
+      'senderId': user.uid,         // The tasker's UID (sender)
+      'message': "Someone applied for your task: $title",
+      'timestamp': Timestamp.now(),
+      'isRead': false,
+      'status': 'pending',         // Default status for the notification
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -179,6 +225,10 @@ void _applyForTask(BuildContext context, String taskId, String title) async {
     );
   }
 }
+
+
+
+
 
 void _showManageOptions(BuildContext context, String taskId, String postedBy) {
   final currentUser = FirebaseAuth.instance.currentUser;
